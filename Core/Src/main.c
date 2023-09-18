@@ -81,6 +81,8 @@ ftu kpa, kph, kpk, kda, kdh, kdk;
 ftu kpa2, kph2, kpk2, kda2, kdh2, kdk2;
 float f = 0.1;
 float Ts = 0.002;
+typedef enum bool { false, true} bool;
+bool first = true;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -154,6 +156,12 @@ void spidata(void){
 		((uint16_t*)(&spi_data))[i] = Rx_buffer[i];
 	}
 }
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin == B1_Pin){
+		first = false;
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -170,11 +178,11 @@ int main(void)
   tau_ff_a.data = 0;
   tau_ff_h.data = 0;
   tau_ff_k.data = 0;
-  kpa.data = 2000;
+  kpa.data = 2500;
   kda.data = 80;
-  kph.data = 1500;
+  kph.data = 2500;
   kdh.data = 80;
-  kpk.data = 1000;
+  kpk.data = 2500;
   kdk.data = 80;
 
   tar_qa2.data = 0;
@@ -190,6 +198,8 @@ int main(void)
   kdh2.data = 80;
   kpk2.data = 1000;
   kdk2.data = 80;
+
+  n = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -223,10 +233,12 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	spiTransmitReceiveData(T_buffer, Rx_buffer);
 
-	tar_q1 = 6*sin(2*pi*f*n*Ts);
-	tar_q2 = 6*cos(2*pi*f*n*Ts);
-	tar_q3 = -6*sin(2*pi*f*n*Ts);
-	n += 1;
+	if(first == false){
+		tar_q1 = 6*sin(2*pi*f*n*Ts);
+		tar_q2 = 6*cos(2*pi*f*n*Ts);
+		tar_q3 = -6*sin(2*pi*f*n*Ts);
+		n += 1;
+	}
 
 	tar_qa.data = (float) tar_q1;
 	tar_qh.data = (float) tar_q2;
@@ -357,7 +369,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
@@ -367,6 +379,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
